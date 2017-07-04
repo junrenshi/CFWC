@@ -33,16 +33,16 @@ __constant__ float qnr[NQMAX] = { 4.6797127951841172e-1f, -2.0279163407481332e-3
    {
     float sinnzr, sinnzi, cosnzr, cosnzi, sin2zr, sin2zi, cos2zr, cos2zi;
     float sr, si, cr, ci, thr, thi, d;
-    
+
     sincosf(zr, &sr, &cr);
     si = sinhf(zi);
     ci = sqrtf(1.0f+si*si);
-    
+
     sinnzr =  ci * sr;
     sinnzi =  si * cr;
     cosnzr =  ci * cr;
     cosnzi = -si * sr;
-    
+
     cos2zr = -cosnzr*cosnzr + cosnzi*cosnzi + sinnzr*sinnzr - sinnzi*sinnzi;
     cos2zi = -2.0f * (cosnzr * cosnzi - sinnzr * sinnzi);
     sin2zr = -2.0f * (sinnzr * cosnzr - sinnzi * cosnzi);
@@ -66,7 +66,7 @@ __constant__ float qnr[NQMAX] = { 4.6797127951841172e-1f, -2.0279163407481332e-3
     }
 
     d = zr*zr + zi*zi;
-    
+
     return (thr*thr + thi*thi)/d;
   }
 
@@ -173,7 +173,7 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
     float invrij2, invrij3;
     invrij2 = invrij * invrij;
     invrij3 = invrij * invrij2;
-    
+
     ax = invrij3 * dx;
     Ex0 += ax - PP0dev[j  ]*dx - PP0dev[j+2*N]*dy;
     ay = invrij3 * dy;
@@ -238,10 +238,10 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
        Xs = X[idj];
        Ys = Y[idj];
      }
-     
+
      dx = Xi - Xj;
      dy = Yi - Yj;
-     
+
      invrij = rsqrtf(dx*dx+dy*dy);
 
      V += invrij;
@@ -255,7 +255,7 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
  }
 
  V -= V0;
- 
+
   /* Setup A, RR, PR */
  obs.RR[0][tid] += dx0*dx0*V;
  obs.RR[1][tid] += dy0*dy0*V;
@@ -283,7 +283,7 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
   temp = dy * dx0;
   obs.AA[3][idi] += temp;
   obs.RR[3][idi] += temp*V;
-  
+
   obs.PR[0][idi] +=  Ex0 * dx;
   obs.PR[1][idi] +=  Ey0 * dy;
   obs.PR[2][idi] +=  Ex0 * dy;
@@ -360,7 +360,7 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
      dx = X1 - XXi;
      dy = Y1 - YYi;
      r1 *= normtheta1p_dev(dx *c1, dy *c1);
-     
+
      dx0 = X0 - XXi;
      dy0 = Y0 - YYi;
      r2 *= normtheta1p_dev(dx0*c1, dy0*c1);
@@ -372,7 +372,7 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
      p *= expf(c2x*(dx*dx - dx0*dx0) + c2y*(dy*dy - dy0*dy0));
 
      rr1 = tinymt32_single(mt);
-     
+
      if(rr1 <= p){
        idx = tid + ic*NT;
        X[idx] = X1;
@@ -397,7 +397,6 @@ void HandleError( cudaError_t err,
     exit( EXIT_FAILURE );
   }
 }
-
 
 
 int main(int argc, char **argv)
@@ -752,7 +751,7 @@ int main(int argc, char **argv)
    collectObservs(Nc, NT, obs, obs0);
 
    gettimeofday(&end, NULL);
-   
+
    TOTALSTEPS1 += (STEPSD * RUNS + 0*STEPSH)*NT;
    duration = Duration(begin, end);
    printf("STEPS: %11ld Duration = %f\tDSpeed = %f\tTD = %f\tHSpeed = %f\tAverage = %f,%e\n",
