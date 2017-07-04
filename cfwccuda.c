@@ -7,8 +7,8 @@
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 void HandleError( cudaError_t err,
-		  const char *file,
-		  int line );
+  const char *file,
+  int line );
 
 #include "tinymt32_kernel.cuh"
 
@@ -23,62 +23,62 @@ __constant__ float Rmaxdev;
 
 #define NQMAX 6
 __constant__ float qnr[NQMAX] = { 4.6797127951841172e-1f, -2.0279163407481332e-3f,
-				 -3.8081294567494075e-8f,  3.098876062284498e-15f,
-				  1.092766934009448e-24f, -1.669866367469883e-36f};
-__constant__ float qni[NQMAX] = { 1.9384005077761673e-1f, -8.3999045169589555e-4f,
-				 -1.5773788682580913e-8f,  1.283596493111571e-15f,
-				  4.526388845795783e-25f, -6.916812967567200e-37f};
+ -3.8081294567494075e-8f,  3.098876062284498e-15f,
+ 1.092766934009448e-24f, -1.669866367469883e-36f};
+ __constant__ float qni[NQMAX] = { 1.9384005077761673e-1f, -8.3999045169589555e-4f,
+   -1.5773788682580913e-8f,  1.283596493111571e-15f,
+   4.526388845795783e-25f, -6.916812967567200e-37f};
 
-__device__ float normtheta1p_dev(float zr, float zi)
-{
-  float sinnzr, sinnzi, cosnzr, cosnzi, sin2zr, sin2zi, cos2zr, cos2zi;
-  float sr, si, cr, ci, thr, thi, d;
-  
-  sincosf(zr, &sr, &cr);
-  si = sinhf(zi);
-  ci = sqrtf(1.0f+si*si);
-  
-  sinnzr =  ci * sr;
-  sinnzi =  si * cr;
-  cosnzr =  ci * cr;
-  cosnzi = -si * sr;
-  
-  cos2zr = -cosnzr*cosnzr + cosnzi*cosnzi + sinnzr*sinnzr - sinnzi*sinnzi;
-  cos2zi = -2.0f * (cosnzr * cosnzi - sinnzr * sinnzi);
-  sin2zr = -2.0f * (sinnzr * cosnzr - sinnzi * cosnzi);
-  sin2zi = -2.0f * (sinnzr * cosnzi + sinnzi * cosnzr);
+   __device__ float normtheta1p_dev(float zr, float zi)
+   {
+    float sinnzr, sinnzi, cosnzr, cosnzi, sin2zr, sin2zi, cos2zr, cos2zi;
+    float sr, si, cr, ci, thr, thi, d;
+    
+    sincosf(zr, &sr, &cr);
+    si = sinhf(zi);
+    ci = sqrtf(1.0f+si*si);
+    
+    sinnzr =  ci * sr;
+    sinnzi =  si * cr;
+    cosnzr =  ci * cr;
+    cosnzi = -si * sr;
+    
+    cos2zr = -cosnzr*cosnzr + cosnzi*cosnzi + sinnzr*sinnzr - sinnzi*sinnzi;
+    cos2zi = -2.0f * (cosnzr * cosnzi - sinnzr * sinnzi);
+    sin2zr = -2.0f * (sinnzr * cosnzr - sinnzi * cosnzi);
+    sin2zi = -2.0f * (sinnzr * cosnzi + sinnzi * cosnzr);
 
-  thr = 0.0;
-  thi = 0.0;
-  for(int n = 0; n < NQMAX; ++n){
-    thr += qnr[n] * sinnzr - qni[n] * sinnzi;
-    thi += qnr[n] * sinnzi + qni[n] * sinnzr;
+    thr = 0.0;
+    thi = 0.0;
+    for(int n = 0; n < NQMAX; ++n){
+      thr += qnr[n] * sinnzr - qni[n] * sinnzi;
+      thi += qnr[n] * sinnzi + qni[n] * sinnzr;
 
-    sr = sinnzr;
-    si = sinnzi;
-    cr = cosnzr;
-    ci = cosnzi;
+      sr = sinnzr;
+      si = sinnzi;
+      cr = cosnzr;
+      ci = cosnzi;
 
-    sinnzr =   cos2zr*sr - cos2zi*si + sin2zr*cr - sin2zi*ci;
-    sinnzi =   cos2zi*sr + cos2zr*si + sin2zi*cr + sin2zr*ci;
-    cosnzr = - sin2zr*sr + sin2zi*si + cos2zr*cr - cos2zi*ci;
-    cosnzi = - sin2zi*sr - sin2zr*si + cos2zi*cr + cos2zr*ci;
+      sinnzr =   cos2zr*sr - cos2zi*si + sin2zr*cr - sin2zi*ci;
+      sinnzi =   cos2zi*sr + cos2zr*si + sin2zi*cr + sin2zr*ci;
+      cosnzr = - sin2zr*sr + sin2zi*si + cos2zr*cr - cos2zi*ci;
+      cosnzi = - sin2zi*sr - sin2zr*si + cos2zi*cr + cos2zr*ci;
+    }
+
+    d = zr*zr + zi*zi;
+    
+    return (thr*thr + thi*thi)/d;
   }
 
-  d = zr*zr + zi*zi;
-  
-  return (thr*thr + thi*thi)/d;
-}
 
+  inline __device__ float Q_rsqrt( float number )
+  {
+   unsigned int i;
+   float x2, y;
+   const float threehalfs = 1.5F;
 
-inline __device__ float Q_rsqrt( float number )
-{
-	unsigned int i;
-	float x2, y;
-	const float threehalfs = 1.5F;
-
-	x2 = number * 0.5F;
-	y  = number;
+   x2 = number * 0.5F;
+   y  = number;
 	i  = * (unsigned int * ) &y;                // evil floating point bit level hacking
 	i  = 0x5f3759df - ( i >> 1 );               // what the fuck? 
 	y  = * ( float * ) &i;
@@ -123,7 +123,7 @@ __device__ float approxU_dev(float x, float y) {
 
 
 __device__ void accuObservs_dev(int N, int NT, float V0,
-				float *X, float *Y, struct Observs obs)
+  float *X, float *Y, struct Observs obs)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   float dx, dy;
@@ -173,7 +173,7 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
     float invrij2, invrij3;
     invrij2 = invrij * invrij;
     invrij3 = invrij * invrij2;
-	  
+    
     ax = invrij3 * dx;
     Ex0 += ax - PP0dev[j  ]*dx - PP0dev[j+2*N]*dy;
     ay = invrij3 * dy;
@@ -234,71 +234,71 @@ __device__ void accuObservs_dev(int N, int NT, float V0,
       Xj = Xs;
       Yj = Ys;
       if(j < N-1){
-	int idj = tid + (j+1)*NT;
-	Xs = X[idj];
-	Ys = Y[idj];
-      }
-      
-      dx = Xi - Xj;
-      dy = Yi - Yj;
-	
-      invrij = rsqrtf(dx*dx+dy*dy);
+       int idj = tid + (j+1)*NT;
+       Xs = X[idj];
+       Ys = Y[idj];
+     }
+     
+     dx = Xi - Xj;
+     dy = Yi - Yj;
+     
+     invrij = rsqrtf(dx*dx+dy*dy);
 
-      V += invrij;
-    }
+     V += invrij;
+   }
 
-    dx = Xi - XXdev[i];
-    dy = Yi - YYdev[i];
+   dx = Xi - XXdev[i];
+   dy = Yi - YYdev[i];
 
     /* Correction to the finite simulation cell */
-    V += approxU_dev(Xi, Yi);
-  }
+   V += approxU_dev(Xi, Yi);
+ }
 
-  V -= V0;
-  
+ V -= V0;
+ 
   /* Setup A, RR, PR */
-  obs.RR[0][tid] += dx0*dx0*V;
-  obs.RR[1][tid] += dy0*dy0*V;
-  obs.RR[2][tid] += dx0*dy0*V;
-  obs.RR[3][tid] += dy0*dx0*V;
+ obs.RR[0][tid] += dx0*dx0*V;
+ obs.RR[1][tid] += dy0*dy0*V;
+ obs.RR[2][tid] += dx0*dy0*V;
+ obs.RR[3][tid] += dy0*dx0*V;
 
-  for(int i  = 1; i<N; ++i){
-    int idi = tid + i*NT;
-    dx = X[idi] - XXdev[i];
-    dy = Y[idi] - YYdev[i];
+ for(int i  = 1; i<N; ++i){
+  int idi = tid + i*NT;
+  dx = X[idi] - XXdev[i];
+  dy = Y[idi] - YYdev[i];
 
-    float temp;
-    temp = dx * dx0;
-    obs.AA[0][idi] += temp;
-    obs.RR[0][idi] += temp*V;
+  float temp;
+  temp = dx * dx0;
+  obs.AA[0][idi] += temp;
+  obs.RR[0][idi] += temp*V;
 
-    temp = dy * dy0;
-    obs.AA[1][idi] += temp;
-    obs.RR[1][idi] += temp*V;
+  temp = dy * dy0;
+  obs.AA[1][idi] += temp;
+  obs.RR[1][idi] += temp*V;
 
-    temp = dx * dy0;
-    obs.AA[2][idi] += temp;
-    obs.RR[2][idi] += temp*V;
+  temp = dx * dy0;
+  obs.AA[2][idi] += temp;
+  obs.RR[2][idi] += temp*V;
 
-    temp = dy * dx0;
-    obs.AA[3][idi] += temp;
-    obs.RR[3][idi] += temp*V;
-    
-    obs.PR[0][idi] +=  Ex0 * dx;
-    obs.PR[1][idi] +=  Ey0 * dy;
-    obs.PR[2][idi] +=  Ex0 * dy;
-    obs.PR[3][idi] +=  Ey0 * dx;
-  }
+  temp = dy * dx0;
+  obs.AA[3][idi] += temp;
+  obs.RR[3][idi] += temp*V;
   
-  obs.V[tid] += V;
+  obs.PR[0][idi] +=  Ex0 * dx;
+  obs.PR[1][idi] +=  Ey0 * dy;
+  obs.PR[2][idi] +=  Ex0 * dy;
+  obs.PR[3][idi] +=  Ey0 * dx;
+}
+
+obs.V[tid] += V;
 }
 
 
 
 __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
-			       struct Observs obs, float V0,
-			       tinymt32_status_t * tinymt, int M, float d,
-			       int STRIDE, int RUNS, long *NACCEP)
+  struct Observs obs, float V0,
+  tinymt32_status_t * tinymt, int M, float d,
+  int STRIDE, int RUNS, long *NACCEP)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   int NACCEPs = 0, i, ic, ep, ep1;
@@ -333,67 +333,67 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
       ep = 0.0f;
       float Xs = X[tid], Ys = Y[tid];
       for(i = 0; i < N; ++i){
-	XXi = XXdev[i];
-	YYi = YYdev[i];
-	Xi = Xs;
-	Yi = Ys;
-	if(i < N-1){
-	  idx = tid + (i+1)*NT;
-	  Xs = X[idx];
-	  Ys = Y[idx];
-	}
-	if(i != ic){
-	  r1 *= (X1- Xi)*(X1- Xi) + (Y1- Yi)*(Y1- Yi);
-	  r1 *= (X0-XXi)*(X0-XXi) + (Y0-YYi)*(Y0-YYi);
-	  r1 = frexp(r1, &ep1);
-	  ep += ep1;
-	  r2 *= (X1-XXi)*(X1-XXi) + (Y1-YYi)*(Y1-YYi);
-	  r2 *= (X0- Xi)*(X0- Xi) + (Y0- Yi)*(Y0- Yi);
-	  r2 = frexp(r2, &ep1);
-	  ep -= ep1;
-	}
-      }
+       XXi = XXdev[i];
+       YYi = YYdev[i];
+       Xi = Xs;
+       Yi = Ys;
+       if(i < N-1){
+         idx = tid + (i+1)*NT;
+         Xs = X[idx];
+         Ys = Y[idx];
+       }
+       if(i != ic){
+         r1 *= (X1- Xi)*(X1- Xi) + (Y1- Yi)*(Y1- Yi);
+         r1 *= (X0-XXi)*(X0-XXi) + (Y0-YYi)*(Y0-YYi);
+         r1 = frexp(r1, &ep1);
+         ep += ep1;
+         r2 *= (X1-XXi)*(X1-XXi) + (Y1-YYi)*(Y1-YYi);
+         r2 *= (X0- Xi)*(X0- Xi) + (Y0- Yi)*(Y0- Yi);
+         r2 = frexp(r2, &ep1);
+         ep -= ep1;
+       }
+     }
 
-      XXi = XXdev[ic];
-      YYi = YYdev[ic];
+     XXi = XXdev[ic];
+     YYi = YYdev[ic];
 
-      dx = X1 - XXi;
-      dy = Y1 - YYi;
-      r1 *= normtheta1p_dev(dx *c1, dy *c1);
-      
-      dx0 = X0 - XXi;
-      dy0 = Y0 - YYi;
-      r2 *= normtheta1p_dev(dx0*c1, dy0*c1);
+     dx = X1 - XXi;
+     dy = Y1 - YYi;
+     r1 *= normtheta1p_dev(dx *c1, dy *c1);
+     
+     dx0 = X0 - XXi;
+     dy0 = Y0 - YYi;
+     r2 *= normtheta1p_dev(dx0*c1, dy0*c1);
 
-      p = r1/r2;
-      p = scalbnf(p, ep);
-      p = powf(p, M);
+     p = r1/r2;
+     p = scalbnf(p, ep);
+     p = powf(p, M);
 
-      p *= expf(c2x*(dx*dx - dx0*dx0) + c2y*(dy*dy - dy0*dy0));
+     p *= expf(c2x*(dx*dx - dx0*dx0) + c2y*(dy*dy - dy0*dy0));
 
-      rr1 = tinymt32_single(mt);
-      
-      if(rr1 <= p){
-	idx = tid + ic*NT;
-	X[idx] = X1;
-	Y[idx] = Y1;
-	NACCEPs++;
-      }
-    }
+     rr1 = tinymt32_single(mt);
+     
+     if(rr1 <= p){
+       idx = tid + ic*NT;
+       X[idx] = X1;
+       Y[idx] = Y1;
+       NACCEPs++;
+     }
+   }
 
-    accuObservs_dev(Nc, NT, V0, X, Y, obs);
-  }
+   accuObservs_dev(Nc, NT, V0, X, Y, obs);
+ }
 
-  NACCEP[tid] += NACCEPs;
+ NACCEP[tid] += NACCEPs;
 }
 
 
 void HandleError( cudaError_t err,
-		  const char *file,
-		  int line ) {
+  const char *file,
+  int line ) {
   if (err != cudaSuccess) {
     printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
-	    file, line );
+     file, line );
     exit( EXIT_FAILURE );
   }
 }
@@ -484,14 +484,14 @@ int main(int argc, char **argv)
       double KY = (TWOPI/a) * INVSQRT3 * ((double) (2*l - k));
       double K2 = KX*KX + KY*KY;
       if((k != 0 || l !=0) && K2 <= 25.0){
-	double iK = 1.0/sqrt(K2);
-	double K = 1.0 /iK;
-	Eg0 += TWOPI * iK * exp(-K*K) ;
-      }
-    }
-  }
-  Eg0 /= HALFSQRT3 * (a*a); 
-  Eg0 -=  EwaldU(0.0, 0.0, Nc, Rc0, a, 0.5*a, XX, YY);
+       double iK = 1.0/sqrt(K2);
+       double K = 1.0 /iK;
+       Eg0 += TWOPI * iK * exp(-K*K) ;
+     }
+   }
+ }
+ Eg0 /= HALFSQRT3 * (a*a); 
+ Eg0 -=  EwaldU(0.0, 0.0, Nc, Rc0, a, 0.5*a, XX, YY);
   Eg0 -= sqrt(PI)*0.5;   // Self-interaction deduction
   Eg0 *= 0.5; //Note that there will be a correction of zero-point of the energy.
 
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
   
   gettimeofday(&begin1, NULL);
   SampleEwaldU(NRS, STEPU, Nc, Rc0, a, d, M, X0, Y0, XX, YY, Rmax,
-	       &U00, U0, U6, U12);
+    &U00, U0, U6, U12);
   gettimeofday(&end1, NULL);
   
   double alpha = U0[0] * ((double) NRS) / (Rmax * Rmax);
@@ -645,23 +645,23 @@ int main(int argc, char **argv)
   float *temp;
   temp = (float *) malloc(NN*sizeof(float));
   for(int i = 0; i<NN; ++i) temp[i] = (float) XX[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(XXdev,  temp,  NN*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(XXdev,  temp,  NN*sizeof(float)) );
   for(int i = 0; i<NN; ++i) temp[i] = (float) YY[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(YYdev,  temp,  NN*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(YYdev,  temp,  NN*sizeof(float)) );
   free(temp);
 
   temp = (float *) malloc(NRS*sizeof(float));
   for(int i = 0; i<NRS; ++i) temp[i] = (float) U0[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(U0dev, temp,  NRS*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(U0dev, temp,  NRS*sizeof(float)) );
   for(int i = 0; i<NRS; ++i) temp[i] = (float) U6[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(U6dev, temp,  NRS*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(U6dev, temp,  NRS*sizeof(float)) );
   for(int i = 0; i<NRS; ++i) temp[i] = (float) U12[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(U12dev, temp,  NRS*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(U12dev, temp,  NRS*sizeof(float)) );
   free(temp);
 
   temp = (float *) malloc(3*Nc*sizeof(float));
   for(int i = 0; i<3*Nc; ++i) temp[i] = (float) PP0[i];
-  HANDLE_ERROR( cudaMemcpyToSymbol(PP0dev, temp,  3*Nc*sizeof(float)) );
+    HANDLE_ERROR( cudaMemcpyToSymbol(PP0dev, temp,  3*Nc*sizeof(float)) );
   free(temp);  
 
   assert(M >= 0);
@@ -697,7 +697,7 @@ int main(int argc, char **argv)
     for(int i = 0; i < STEPSH; ++i){
       metropolis_host_(&NN, X0, Y0, XX, YY, &M, &d, &a, &STEPS3, &NACCEP);
       accuObservs_host(Nc, ((double) V0), X0, Y0, XX, YY,
-		       NRS, Rmax, U0, U6, U12, PP0, obs0);
+       NRS, Rmax, U0, U6, U12, PP0, obs0);
     }
     for(int i = 0; i<NN; ++i){
       idx = j + i*NT;
@@ -724,101 +724,101 @@ int main(int argc, char **argv)
       HANDLE_ERROR( cudaMemset(obsdev.AA[0], 0, NT*(15*Nc+2)*sizeof(float)) );
 
       for(int i = 0; i<STEPSD; ++i)
-	metropolis_dev<<<NB, NBT>>>(NN, NT, Nc, Xdev, Ydev, obsdev, ((float) V0),
-				    mt, M, ((float) d), STRIDE, RUNS, NACCEPNdev);
+       metropolis_dev<<<NB, NBT>>>(NN, NT, Nc, Xdev, Ydev, obsdev, ((float) V0),
+        mt, M, ((float) d), STRIDE, RUNS, NACCEPNdev);
 
       /* Host execution */
-      for(int j = 0; j < NT; ++j){
-      	for(int i = 0; i < STEPSH; ++i){
-      		metropolis_host_(&NN, X0, Y0, XX, YY, &M, &d, &a, &STEPS3, &NACCEP);
+     for(int j = 0; j < NT; ++j){
+       for(int i = 0; i < STEPSH; ++i){
+        metropolis_host_(&NN, X0, Y0, XX, YY, &M, &d, &a, &STEPS3, &NACCEP);
 	  		//accuObservs_host(Nc, ((double) V0), X0, Y0, XX, YY,
 	  		//		   NRS, Rmax, U0, U6, U12, PP0, obs0);
-	  	}
-		for(int i = 0; i<NN; ++i){
-	  		idx = j + i*NT;
-	  		X[idx] = X0[i];
-	  		Y[idx] = Y0[i];
-		}
       }
-      gettimeofday(&endh, NULL);
+      for(int i = 0; i<NN; ++i){
+       idx = j + i*NT;
+       X[idx] = X0[i];
+       Y[idx] = Y0[i];
+     }
+   }
+   gettimeofday(&endh, NULL);
 
       /* Synchronize host and device */
-      HANDLE_ERROR( cudaDeviceSynchronize() );
+   HANDLE_ERROR( cudaDeviceSynchronize() );
 
       /* Combine host and device */ 
-      HANDLE_ERROR( cudaMemcpy(obs.AA[0], obsdev.AA[0], NT*(15*Nc+2)*sizeof(float),
-			       cudaMemcpyDeviceToHost) );
+   HANDLE_ERROR( cudaMemcpy(obs.AA[0], obsdev.AA[0], NT*(15*Nc+2)*sizeof(float),
+    cudaMemcpyDeviceToHost) );
 
-      collectObservs(Nc, NT, obs, obs0);
+   collectObservs(Nc, NT, obs, obs0);
 
-      gettimeofday(&end, NULL);
-      
-      TOTALSTEPS1 += (STEPSD * RUNS + 0*STEPSH)*NT;
-      duration = Duration(begin, end);
-      printf("STEPS: %11ld Duration = %f\tDSpeed = %f\tTD = %f\tHSpeed = %f\tAverage = %f,%e\n",
-	     TOTALSTEPS + TOTALSTEPS1, duration,
-	     ((double) (STEPSH + STEPSD*RUNS)*NT*STRIDE)/duration, Duration(endh, end),
-	     ((double) STEPSH*NT*STRIDE)/Duration(begin, endh),
-	     (obs0.AA[0][0] + obs0.AA[1][0])/((double) TOTALSTEPS1),
-	     (obs0.Eg[0]/((double) TOTALSTEPS1)) * 0.5 - Eg0);
-    }
-    TOTALSTEPS += TOTALSTEPS1 + STEPSH*NT*STEPS;
-    averageObservs(Nc, TOTALSTEPS1, obs0, aobs, dobs);
-  }
+   gettimeofday(&end, NULL);
+   
+   TOTALSTEPS1 += (STEPSD * RUNS + 0*STEPSH)*NT;
+   duration = Duration(begin, end);
+   printf("STEPS: %11ld Duration = %f\tDSpeed = %f\tTD = %f\tHSpeed = %f\tAverage = %f,%e\n",
+    TOTALSTEPS + TOTALSTEPS1, duration,
+    ((double) (STEPSH + STEPSD*RUNS)*NT*STRIDE)/duration, Duration(endh, end),
+    ((double) STEPSH*NT*STRIDE)/Duration(begin, endh),
+    (obs0.AA[0][0] + obs0.AA[1][0])/((double) TOTALSTEPS1),
+    (obs0.Eg[0]/((double) TOTALSTEPS1)) * 0.5 - Eg0);
+ }
+ TOTALSTEPS += TOTALSTEPS1 + STEPSH*NT*STEPS;
+ averageObservs(Nc, TOTALSTEPS1, obs0, aobs, dobs);
+}
 
-  normalizeObservs(Nc, NSTATS, alpha, V0, aobs, dobs);
-  
-  HANDLE_ERROR( cudaMemcpy(NACCEPN, NACCEPNdev, NT*sizeof(long), cudaMemcpyDeviceToHost) );
+normalizeObservs(Nc, NSTATS, alpha, V0, aobs, dobs);
 
-  for(int i = 0; i < NT; ++i) NACCEP += NACCEPN[i];
+HANDLE_ERROR( cudaMemcpy(NACCEPN, NACCEPNdev, NT*sizeof(long), cudaMemcpyDeviceToHost) );
+
+for(int i = 0; i < NT; ++i) NACCEP += NACCEPN[i];
 
   gettimeofday(&end0, NULL);
 
-  outputObservs("AA", Nc, M, nu, XX,  YY,
-		aobs.AA[0], aobs.AA[1], aobs.AA[2], aobs.AA[3],
-		dobs.AA[0], dobs.AA[1], dobs.AA[2], dobs.AA[3]);
-  double *PP3;
-  PP3 = (double *) malloc(Nc*sizeof(double));
-  memcpy(PP3, aobs.PP[2], Nc*sizeof(double));
-  outputObservs("PP", Nc, M, nu, XX,  YY,
-		aobs.PP[0], aobs.PP[1], aobs.PP[2], PP3,
-		dobs.PP[0], dobs.PP[1], dobs.PP[2], dobs.PP[2]);
-  free(PP3);
-  outputObservs("PR", Nc, M, nu, XX,  YY,
-		aobs.PR[0], aobs.PR[1], aobs.PR[2], aobs.PR[3],
-		dobs.PR[0], dobs.PR[1], dobs.PR[2], dobs.PR[3]);
+outputObservs("AA", Nc, M, nu, XX,  YY,
+  aobs.AA[0], aobs.AA[1], aobs.AA[2], aobs.AA[3],
+  dobs.AA[0], dobs.AA[1], dobs.AA[2], dobs.AA[3]);
+double *PP3;
+PP3 = (double *) malloc(Nc*sizeof(double));
+memcpy(PP3, aobs.PP[2], Nc*sizeof(double));
+outputObservs("PP", Nc, M, nu, XX,  YY,
+  aobs.PP[0], aobs.PP[1], aobs.PP[2], PP3,
+  dobs.PP[0], dobs.PP[1], dobs.PP[2], dobs.PP[2]);
+free(PP3);
+outputObservs("PR", Nc, M, nu, XX,  YY,
+  aobs.PR[0], aobs.PR[1], aobs.PR[2], aobs.PR[3],
+  dobs.PR[0], dobs.PR[1], dobs.PR[2], dobs.PR[3]);
 
-  outputObservs("RR", Nc, M, nu, XX,  YY,
-		aobs.RR[0], aobs.RR[1], aobs.RR[2], aobs.RR[3],
-		dobs.RR[0], dobs.RR[1], dobs.RR[2], dobs.RR[3]);
-  
-  duration = Duration(begin0, end0);
-  printf("Acceptance Rate = %f\t<r^2> = %f\t  D_Eg/N = %f\n",
-	 ((float) NACCEP)/((float) TOTALSTEPS*NN*STRIDE),
-	 aobs.AA[0][0] + aobs.AA[1][0],
-	 aobs.Eg[0] - Eg0);
-	 
-  printf("Total Time = %f \t Speed = %f \n",  duration, ((float) TOTALSTEPS*STRIDE)/duration);
+outputObservs("RR", Nc, M, nu, XX,  YY,
+  aobs.RR[0], aobs.RR[1], aobs.RR[2], aobs.RR[3],
+  dobs.RR[0], dobs.RR[1], dobs.RR[2], dobs.RR[3]);
 
-  FILE *fp;
-  char f0[256];
+duration = Duration(begin0, end0);
+printf("Acceptance Rate = %f\t<r^2> = %f\t  D_Eg/N = %f\n",
+  ((float) NACCEP)/((float) TOTALSTEPS*NN*STRIDE),
+  aobs.AA[0][0] + aobs.AA[1][0],
+  aobs.Eg[0] - Eg0);
 
-  sprintf(f0, "Parameters-%1d-%6.4f", M, nu);
-  fp = fopen(f0, "w");
-  fprintf(fp, "nu = %f, M = %d, D_Eg = %e (+/-) %e\n", nu, M, aobs.Eg[0] - Eg0, dobs.Eg[0]);
-  fprintf(fp, "Total number of samples: %ld\n", TOTALSTEPS);
-  fprintf(fp, "Rc = %f,  NN = %d,  Nc = %d\n", Rc, NN, Nc);
-  fprintf(fp, "alpha = %e\n", alpha);
-  fclose(fp);
+printf("Total Time = %f \t Speed = %f \n",  duration, ((float) TOTALSTEPS*STRIDE)/duration);
 
-  
-  free(X);
-  free(obsbuf);
-  free(NACCEPN);
-  free(buf1);
-  
-  HANDLE_ERROR( cudaFree(Xdev) );
-  HANDLE_ERROR( cudaFree(obsdevbuf) );
-  HANDLE_ERROR( cudaFree(NACCEPNdev) );
-  
+FILE *fp;
+char f0[256];
+
+sprintf(f0, "Parameters-%1d-%6.4f", M, nu);
+fp = fopen(f0, "w");
+fprintf(fp, "nu = %f, M = %d, D_Eg = %e (+/-) %e\n", nu, M, aobs.Eg[0] - Eg0, dobs.Eg[0]);
+fprintf(fp, "Total number of samples: %ld\n", TOTALSTEPS);
+fprintf(fp, "Rc = %f,  NN = %d,  Nc = %d\n", Rc, NN, Nc);
+fprintf(fp, "alpha = %e\n", alpha);
+fclose(fp);
+
+
+free(X);
+free(obsbuf);
+free(NACCEPN);
+free(buf1);
+
+HANDLE_ERROR( cudaFree(Xdev) );
+HANDLE_ERROR( cudaFree(obsdevbuf) );
+HANDLE_ERROR( cudaFree(NACCEPNdev) );
+
 }
