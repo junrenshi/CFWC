@@ -29,7 +29,7 @@ struct ObservsDouble{
   double *PR[4];  /* N * 4 */
   double *RR[4];  /* N * 4 */
   double *V;      /* 1 */
-  double *Eg;
+  double *Eg;     /* Ground state energy */
 }; 
 
 extern "C" {
