@@ -311,9 +311,11 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
   
   for(int irun = 0; irun < RUNS; ++irun){
     for(int j = 0; j < STRIDE*N; ++j){
+      // Choose a particle to update.
       rr1 = tinymt32_single(mt);
       ic = ((int) (N * rr1));
       
+      // X0, Y0: old position
       idx = tid + ic*NT;
       X0 = X[idx];
       Y0 = Y[idx];
@@ -323,11 +325,13 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
 
       rr2 = tinymt32_single(mt);
       rr2 *= TWOPI;
-
       sincosf(rr2, &dx, &dy);
+
+      //X1, Y1: New position
       X1 = X0 + rr1 * dy;
       Y1 = Y0 + rr1 * dx;
 
+      //Ratio of the Bijl-Jastrow factor
       r1 = 1.0f;
       r2 = 1.0f;
       ep = 0.0f;
@@ -369,8 +373,10 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
      p = scalbnf(p, ep);
      p = powf(p, M);
 
+     // Change of the Gaussian factor
      p *= expf(c2x*(dx*dx - dx0*dx0) + c2y*(dy*dy - dy0*dy0));
 
+     // Update or not?
      rr1 = tinymt32_single(mt);
 
      if(rr1 <= p){
@@ -381,6 +387,7 @@ __global__ void metropolis_dev(int N, int NT, int Nc, float *X, float *Y,
      }
    }
 
+   // Evaluating observables
    accuObservs_dev(Nc, NT, V0, X, Y, obs);
  }
 
